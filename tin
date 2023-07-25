@@ -1,0 +1,155 @@
+import pygame
+import sys
+import random
+
+# Initialize pygame
+pygame.init()
+
+# Constants
+WIDTH, HEIGHT = 400, 600
+GRAVITY = 0.25
+FLAP = -4
+PIPE_GAP = 200
+PIPE_SPACING = 200
+PIPE_WIDTH = 70
+BALL_RADIUS = 20
+BALL_X = 100
+
+# Colors
+WHITE = (255, 255, 255)
+BLUE = (0, 0, 255)
+GREEN = (0, 255, 0)
+
+# Create the game window
+window = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Flyball")
+
+# Ball class
+class Ball:
+    def __init__(self):
+        self.x = BALL_X
+        self.y = HEIGHT // 2
+        self.velocity = 0
+
+    def flap(self):
+        self.velocity = FLAP
+
+    def update(self):
+        # Apply gravity to the ball's velocity
+        self.velocity += GRAVITY
+        # Update the ball's vertical position
+        self.y += self.velocity
+
+    def draw(self):
+        # Draw the ball on the window
+        pygame.draw.circle(window, BLUE, (self.x, int(self.y)), BALL_RADIUS)
+
+# Pipe class
+class Pipe:
+    def __init__(self, x):
+        self.x = x
+        self.height = random.randint(100, HEIGHT - PIPE_GAP - 100)
+
+    def collide(self, ball):
+        # Check for collision between ball and pipe
+        if ball.y - BALL_RADIUS < self.height or ball.y + BALL_RADIUS > self.height + PIPE_GAP:
+            if ball.x > self.x and ball.x < self.x + PIPE_WIDTH:
+                return True
+        return False
+
+    def draw(self):
+        # Draw the pipe on the window
+        pygame.draw.rect(window, GREEN, (self.x, 0, PIPE_WIDTH, self.height))
+        pygame.draw.rect(window, GREEN, (self.x, self.height + PIPE_GAP, PIPE_WIDTH, HEIGHT - self.height - PIPE_GAP))
+
+# Tutorial screen
+def tutorial():
+    tutorial_font = pygame.font.Font(None, 30)
+    tutorial_text = tutorial_font.render("Press SPACE to make the ball fly.", True, BLUE)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    return
+
+        window.fill(WHITE)
+        ball.draw()
+        window.blit(tutorial_text, (WIDTH // 2 - 140, HEIGHT // 6))
+
+        pygame.display.update()
+        clock.tick(60)
+
+# Game setup
+ball = Ball()
+pipes = [Pipe(WIDTH + i * PIPE_SPACING) for i in range(3)]
+score = 0
+
+clock = pygame.time.Clock()
+
+# Show tutorial before starting the game
+tutorial()
+
+# Game loop
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                ball.flap()
+
+    # Update
+    ball.update()
+
+    # Pipes
+    for pipe in pipes:
+        pipe.x -= 1
+        if pipe.x < -PIPE_WIDTH:
+            pipe.x += 3 * PIPE_SPACING
+            pipe.height = random.randint(100, HEIGHT - PIPE_GAP - 100)
+
+        if pipe.collide(ball):
+            font = pygame.font.Font(None, 50)
+            game_over_text = font.render("Game Over!", True, BLUE)
+            exit_text = font.render("Press any key to exit.", True, BLUE)
+            window.blit(game_over_text, (WIDTH // 2 - 100, HEIGHT // 1.5 - 50))
+            window.blit(exit_text, (WIDTH // 2 - 150, HEIGHT // 2.5 + 50))
+            
+            pygame.display.update()
+
+            # Wait for any key press to exit
+            while True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    elif event.type == pygame.KEYDOWN:
+                        pygame.quit()
+                        sys.exit()
+
+            # Reset the game variables after game over
+            ball = Ball()
+            pipes = [Pipe(WIDTH + i * PIPE_SPACING) for i in range(3)]
+            score = 0
+
+        if pipe.x == ball.x:
+            score += 1
+
+    # Draw
+    window.fill(WHITE)
+    ball.draw()
+    for pipe in pipes:
+        pipe.draw()
+
+    # Display score
+    font = pygame.font.Font(None, 50)
+    score_text = font.render("Score: " + str(score), True, BLUE)
+    window.blit(score_text, (10, 10))
+
+    pygame.display.update()
+    clock.tick(60)
